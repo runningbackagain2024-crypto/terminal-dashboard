@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Terminal Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<style>
+body{
+  font-family:'Montserrat',sans-serif;
+  background:#0e1117;
+  color:#e5e7eb;
+  margin:16px;
+  overflow-x:hidden;
+}
+
+/* Auth box */
+#authBox{
+  max-width:560px;
+  margin:12px auto 18px auto;
+  padding:14px 14px 12px 14px;
+  border:1px solid #30363d;
+  border-radius:12px;
+  background:#161b22;
+  box-shadow:0 6px 18px rgba(0,0,0,0.35);
+}
+#authTitle{
+  font-weight:800;
+  color:#cbd5e1;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+#authHint{
+  color:#9ca3af;
+  font-size:12px;
+  margin-top:8px;
+}
+
+/* Top area: Title row + (KPI left, Clock right) row */
+#topBar{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "title title"
+    "kpi   clock";
+  gap:10px;
+  margin-top:4px;
+  margin-bottom:8px;
+  max-width:100%;
+}
+
+/* Title spans both columns */
+#pageTitle{
+  grid-area:title;
+  text-align:center;
+  padding-top:0;
+  margin:0;
+}
+
+#pageTitle h1{
+  font-size:42px;
+  margin:0;
+  color:#9ca3af;
+  font-weight:700;
+  line-height:1.05;
+  white-space:normal;
+}
+
+/* Controls directly under title */
+#shareControls{
+  justify-content:center;
+  margin-top:12px;
+}
+#cloudStatus{
+  color:#9ca3af;
+  font-size:12px;
+  margin-top:6px;
+  min-height:16px;
+}
+
+/* KPI panel (left) */
+#kpiPanel{
+  grid-area:kpi;
+  width:100%;
+  max-width:640px;
+  justify-self:start;
+  color:#9ca3af;
+
+  background:linear-gradient(180deg, rgba(22,27,34,0.92) 0%, rgba(14,17,23,0.88) 100%);
+  border:1px solid rgba(48,54,61,0.9);
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.45);
+
+  padding:8px 10px 10px 10px;
+  backdrop-filter: blur(6px);
+}
+
+/* Clock (right) */
+#clock{
+  grid-area:clock;
+  justify-self:end;
+  align-self:start;
+  width:260px;
+  text-align:right;
+  font-size:92px;
+  font-weight:bold;
+  color:#9ca3af;
+  line-height:1;
+  padding-top:0;
+  margin:0;
+}
+
+/* KPI row */
+#kpiRow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.kpi-block{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  min-width:0;
+}
+
+.kpi-label{
+  font-size:14px;
+  font-weight:800;
+  margin-bottom:6px;
+  white-space:nowrap;
+  letter-spacing:0.2px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#cbd5e1;
+}
+
+.kpi-label.received .kpi-icon{ color:#22c55e; }
+.kpi-label.waitCars .kpi-icon{ color:#f59e0b; }
+.kpi-label.waitPall .kpi-icon{ color:#38bdf8; }
+
+.kpi-number{
+  font-size:78px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:-1px;
+  text-shadow: 0 0 18px rgba(0,0,0,0.35);
+}
+
+.kpi-number.received{
+  color:#22c55e;
+  text-shadow: 0 0 26px rgba(34,197,94,0.18), 0 0 10px rgba(34,197,94,0.10);
+}
+.kpi-number.waitCars{
+  color:#f59e0b;
+  text-shadow: 0 0 26px rgba(245,158,11,0.18), 0 0 10px rgba(245,158,11,0.10);
+}
+.kpi-number.waitPall{
+  color:#38bdf8;
+  text-shadow: 0 0 26px rgba(56,189,248,0.18), 0 0 10px rgba(56,189,248,0.10);
+}
+
+/* Line chart */
+#kpiChartWrap{
+  margin-top:8px;
+  padding-top:6px;
+  border-top:1px solid rgba(48,54,61,0.85);
+}
+
+#kpiChartTitle{
+  font-size:13px;
+  font-weight:800;
+  color:#cbd5e1;
+  margin-bottom:6px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+#kpiChartTitle i{ color:#00D1FF; }
+
+#pallChart{
+  width:100%;
+  height:120px;
+  background:rgba(14,17,23,0.35);
+  border:1px solid rgba(48,54,61,0.55);
+  border-radius:12px;
+  display:block;
+}
+
+/* SECTION TITLES */
+h2{
+  color:#9ca3af;
+  margin:12px 0 8px 0;
+  font-weight:600;
+}
+
+/* FORM */
+input,select,button,textarea{
+  padding:6px;
+  margin:3px;
+  font-size:13px;
+  font-family:'Montserrat',sans-serif;
+  border-radius:6px;
+  border:1px solid #30363d;
+}
+
+input,select,textarea{
+  background:#161b22;
+  color:#e5e7eb;
+}
+
+button{
+  background:#9ca3af;
+  color:#0e1117;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+button:hover{ background:#6b7280; }
+
+.form-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+}
+
+#anteckningar{
+  width:240px;
+  height:38px;
+  resize:none;
+  margin:3px;
+}
+
+/* WAITING CARS */
+.container{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:16px;
+}
+
+.card{
+  width:180px;
+  height:192px;
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  font-size:13px;
+  background:#161b22;
+  box-shadow:0 4px 12px rgba(0,0,0,0.6);
+  transition:0.2s;
+}
+
+.card:hover{ transform:translateY(-4px); }
+.card.green{background:#1f6f43;}
+.card.orange{background:#b26a00;}
+.card.red{background:#7f1d1d;}
+
+.card .leverantor{ font-weight:700; font-size:18px; }
+.card .lossningstid{ font-weight:600; font-size:15px; }
+
+/* PORT SECTION */
+.port-container{
+  display:flex;
+  gap:6px;
+  flex-wrap:nowrap;
+  justify-content:flex-start;
+  overflow-x:auto;
+  padding-bottom:6px;
+}
+
+.port-container::-webkit-scrollbar{ height:8px; }
+.port-container::-webkit-scrollbar-thumb{ background:#30363d; border-radius:8px; }
+.port-container::-webkit-scrollbar-track{ background:#0e1117; }
+
+.port-column{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+/* PORT CARD */
+.port{
+  width:170px;
+  height:240px;
+  border-radius:10px;
+  padding:8px;
+  font-size:12px;
+  color:#e5e7eb;
+  background:#161b22;
+  box-shadow:0 3px 10px rgba(0,0,0,0.6);
+}
+
+.port-header{
+  font-size:20px;
+  font-weight:700;
+  text-decoration:underline;
+  margin-bottom:6px;
+}
+
+/* GAUGE */
+.gauge-container{
+  display:flex;
+  align-items:center;
+  width:170px;
+  margin-bottom:6px;
+}
+
+.gauge{
+  flex-grow:1;
+  height:8px;
+  background:#2d333b;
+  border-radius:4px;
+  overflow:hidden;
+}
+
+.gauge-fill{
+  height:100%;
+  border-radius:4px;
+}
+
+.gauge-value{
+  margin-left:6px;
+  font-size:12px;
+  font-weight:600;
+}
+
+/* Rubrik ovanför lastyta */
+.arrived-title{
+  width:170px;
+  text-align:center;
+  font-weight:700;
+  color:#e5e7eb;
+  margin-top:6px;
+  margin-bottom:6px;
+  line-height:1.1;
+}
+
+/* ARRIVED */
+.arrived{
+  width:170px;
+  height:720px;
+  background:#161b22;
+  border-radius:10px;
+  padding:5px;
+  overflow-y:auto;
+  font-size:12px;
+  margin-top:0px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.6);
+}
+
+.arrived-item{
+  border-bottom:1px solid #30363d;
+  padding-bottom:4px;
+  margin-bottom:4px;
+}
+
+button.small{
+  padding:4px;
+  font-size:11px;
+  margin-top:4px;
+  border-radius:4px;
+}
+
+.blue-line{
+  width:100%;
+  height:2px;
+  background:#9ca3af;
+  margin:22px 0 12px 0;
+}
+
+/* Responsive */
+@media (max-width: 1100px){
+  #topBar{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "title"
+      "kpi"
+      "clock";
+  }
+  #kpiPanel{ max-width:100%; }
+  #clock{
+    justify-self:start;
+    text-align:left;
+    width:auto;
+    font-size:72px;
+  }
+  #pageTitle h1{ font-size:36px; }
+}
+</style>
+</head>
+
+<body>
+
+<!-- ✅ LOGIN (Firebase Auth) -->
+<div id="authBox">
+  <div id="authTitle"><i class="fa-solid fa-lock"></i> Logga in</div>
+  <div class="form-row" style="justify-content:center;">
+    <input id="authEmail" type="email" placeholder="E-post" autocomplete="username" style="min-width:240px;">
+    <input id="authPass" type="password" placeholder="Lösenord" autocomplete="current-password" style="min-width:180px;">
+    <button onclick="fbLogin()"><i class="fa-solid fa-right-to-bracket"></i> Logga in</button>
+    <button onclick="fbRegister()"><i class="fa-solid fa-user-plus"></i> Skapa konto</button>
+  </div>
+  <div id="authHint">
+    Datan är användarspecifik (egen data per konto) och sparas i molnet.
+  </div>
+</div>
+
+<!-- ✅ APPEN (döljs tills inloggning) -->
+<div id="appBox" style="display:none;">
+
+  <div id="topBar">
+    <div id="pageTitle">
+      <h1>Terminal Dashboard</h1>
+
+      <!-- ✅ Knappar rakt under rubriken -->
+      <div id="shareControls" class="form-row">
+        <button onclick="cloudLoad()">
+          <i class="fa-solid fa-cloud-arrow-down"></i> Ladda från molnet
+        </button>
+        <button onclick="cloudSave()">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Spara till molnet
+        </button>
+        <button onclick="toggleAutosave()" id="autosaveBtn" title="Slå på/av autosparning till molnet">
+          <i class="fa-solid fa-rotate"></i> Autosave: På
+        </button>
+        <button onclick="fbLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Logga ut
+        </button>
+      </div>
+
+      <div id="cloudStatus"></div>
+    </div>
+
+    <div id="kpiPanel">
+      <div id="kpiRow">
+        <div class="kpi-block">
+          <div class="kpi-label received"><i class="fa-solid fa-box kpi-icon"></i> Mottagna pall</div>
+          <div class="kpi-number received" id="kpiReceivedPallets">0</div>
+        </div>
+
+        <div class="kpi-block">
+          <div class="kpi-label waitCars"><i class="fa-solid fa-truck kpi-icon"></i> Väntande bilar</div>
+          <div class="kpi-number waitCars" id="kpiWaitingCars">0</div>
+        </div>
+
+        <div class="kpi-block">
+          <div class="kpi-label waitPall"><i class="fa-solid fa-boxes-stacked kpi-icon"></i> Väntande pall</div>
+          <div class="kpi-number waitPall" id="kpiWaitingPallets">0</div>
+        </div>
+      </div>
+
+      <div id="kpiChartWrap">
+        <div id="kpiChartTitle"><i class="fa-solid fa-chart-line"></i> Lossade pall per timme (07–23)</div>
+        <canvas id="pallChart"></canvas>
+      </div>
+    </div>
+
+    <div id="clock"></div>
+  </div>
+
+  <h2>Lägg till leverantör</h2>
+  <input type="text" id="nyLeverantor" placeholder="Ny leverantör">
+  <button onclick="laggTillLeverantor()">Lägg till</button>
+
+  <h2>Registrera ankomst</h2>
+  <div class="form-row">
+    <select id="leverantor"></select>
+    <input type="text" id="regnr" placeholder="Regnr">
+    <input type="text" id="ordernr" placeholder="Ordernr">
+    <select id="antalPall"></select>
+    <input type="time" id="portTid">
+    <textarea id="anteckningar" placeholder="Anteckningar"></textarea>
+    <button onclick="registrera()">Registrera</button>
+  </div>
+
+  <div class="blue-line"></div>
+
+  <h2>Väntande bilar</h2>
+  <div class="container" id="vantande"></div>
+
+  <h2>Portar och Ankommet gods</h2>
+  <div class="port-container" id="portContainer"></div>
+
+  <h2>Radera leverantör</h2>
+  <select id="raderaLeverantor"></select>
+  <button onclick="taBortLeverantor()">Radera</button>
+
+</div>
+
+<!-- =========================
+     ✅ Dashboard-script (classic)
+     ========================= -->
+<script>
+/* =========================
+   ✅ Lokal data (cache)
+   - ÖVER DAGAR: ingen daily reset här
+   ========================= */
+var leverantorer = JSON.parse(localStorage.getItem("leverantorer")) || ["DHL","PostNord","Bring"];
+var vantande     = JSON.parse(localStorage.getItem("vantande"))     || [];
+var ankommet     = JSON.parse(localStorage.getItem("ankommet"))     || [];
+
+/* Dagstotal per port */
+var pallStat = JSON.parse(localStorage.getItem("pallStat")) || {};
+for(let i=24;i<=35;i++){ pallStat[i] = pallStat[i] || 0; }
+
+/* Portar */
+var portar = JSON.parse(localStorage.getItem("portar")) || {};
+for(let i=24;i<=35;i++){ portar[i] = portar[i] || null; }
+
+/* Timeline (pall lossade per timme 07-23) */
+var pallTimeline = JSON.parse(localStorage.getItem("pallTimeline")) || {};
+function initTimeline(){
+  for(let h=7; h<=23; h++){
+    const k = String(h).padStart(2,"0");
+    pallTimeline[k] = pallTimeline[k] || 0;
+  }
+}
+initTimeline();
+
+function ensureId(obj){
+  if(obj && !obj.id){
+    obj.id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now()+"_"+Math.random().toString(16).slice(2));
+  }
+  return obj;
+}
+vantande = vantande.map(ensureId);
+ankommet = ankommet.map(ensureId);
+for(const p of Object.keys(portar)){
+  if(portar[p]) ensureId(portar[p]);
+}
+
+/* pall dropdown */
+const pallSelect = document.getElementById("antalPall");
+for(let i=1;i<=120;i++){
+  let o=document.createElement("option");
+  o.value=i; o.textContent=i;
+  pallSelect.appendChild(o);
+}
+
+/* =========================
+   ✅ Cloud autosave toggle + status
+   ========================= */
+var AUTOSAVE_ENABLED = true;
+
+function setCloudStatus(msg){
+  const el = document.getElementById("cloudStatus");
+  if(!el) return;
+  el.textContent = msg;
+  setTimeout(() => { if(el.textContent === msg) el.textContent = ""; }, 12000);
+}
+
+function toggleAutosave(){
+  AUTOSAVE_ENABLED = !AUTOSAVE_ENABLED;
+  const btn = document.getElementById("autosaveBtn");
+  if(btn){
+    btn.innerHTML = `<i class="fa-solid fa-rotate"></i> Autosave: ${AUTOSAVE_ENABLED ? "På" : "Av"}`;
+  }
+  setCloudStatus(AUTOSAVE_ENABLED ? "Autosave är PÅ." : "Autosave är AV.");
+}
+
+function spara(){
+  localStorage.setItem("leverantorer", JSON.stringify(leverantorer));
+  localStorage.setItem("vantande", JSON.stringify(vantande));
+  localStorage.setItem("ankommet", JSON.stringify(ankommet));
+  localStorage.setItem("portar", JSON.stringify(portar));
+  localStorage.setItem("pallStat", JSON.stringify(pallStat));
+  localStorage.setItem("pallTimeline", JSON.stringify(pallTimeline));
+
+  // ✅ Firebase autosave (if inloggad)
+  if(AUTOSAVE_ENABLED && window.__UID__ && window.scheduleFirebaseSave){
+    window.scheduleFirebaseSave(window.__UID__);
+  }
+}
+
+function beraknaTotalPallIdag(){
+  let total = 0;
+  for(let i=24;i<=35;i++) total += parseInt(pallStat[i],10) || 0;
+  return total;
+}
+function beraknaVantandeBilar(){ return vantande.length; }
+function beraknaVantandePall(){
+  let total = 0;
+  vantande.forEach(b => total += parseInt(b.antal,10) || 0);
+  return total;
+}
+
+function uppdateraDropdown(){
+  const s=document.getElementById("leverantor");
+  const d=document.getElementById("raderaLeverantor");
+  s.innerHTML=""; d.innerHTML="";
+  leverantorer.forEach(l=>{
+    let o1=document.createElement("option"); o1.textContent=l; s.appendChild(o1);
+    let o2=document.createElement("option"); o2.textContent=l; d.appendChild(o2);
+  });
+}
+
+function laggTillLeverantor(){
+  const ny=document.getElementById("nyLeverantor").value.trim();
+  if(ny && !leverantorer.includes(ny)){
+    leverantorer.push(ny); spara(); uppdateraDropdown();
+  }
+  document.getElementById("nyLeverantor").value="";
+}
+
+function taBortLeverantor(){
+  const val=document.getElementById("raderaLeverantor").value;
+  leverantorer=leverantorer.filter(l=>l!==val);
+  spara(); uppdateraDropdown();
+}
+
+function registrera(){
+  const lev=document.getElementById("leverantor").value;
+  const reg=document.getElementById("regnr").value.trim().toUpperCase();
+  const order=document.getElementById("ordernr").value.trim();
+  const pall=parseInt(document.getElementById("antalPall").value,10);
+  const anteck=document.getElementById("anteckningar").value.trim();
+  const tidStr=document.getElementById("portTid").value;
+
+  if(!reg || !tidStr){ alert("Fyll i regnr och tid."); return; }
+  if(!Number.isFinite(pall) || pall<=0){ alert("Antal pallar måste vara ett tal."); return; }
+  if(vantande.some(x => (x.regnr||"").trim().toUpperCase()===reg)){
+    alert("Regnr finns redan i väntande."); return;
+  }
+
+  const [h,m]=tidStr.split(":").map(Number);
+  const now=new Date();
+  const tid=new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+
+  const id=(crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now()+"_"+Math.random().toString(16).slice(2));
+
+  vantande.push({
+    id,
+    leverantor: lev,
+    regnr: reg,
+    ordernr: order,
+    antal: String(pall),
+    anteckningar: anteck,
+    portTid: tid.getTime()
+  });
+
+  vantande.sort((a,b)=>a.portTid-b.portTid);
+  spara(); render();
+
+  document.getElementById("regnr").value="";
+  document.getElementById("ordernr").value="";
+  document.getElementById("antalPall").selectedIndex=0;
+  document.getElementById("portTid").value="";
+  document.getElementById("anteckningar").value="";
+}
+
+function bokaIndex(index){
+  let lediga=Object.keys(portar).filter(p=>!portar[p]);
+  if(lediga.length===0){ alert("Inga lediga portar"); return; }
+  let val=prompt("Välj port: "+lediga.join(","));
+  if(!lediga.includes(val)) return;
+
+  portar[val]=vantande[index];
+  vantande.splice(index,1);
+  spara(); render();
+}
+
+function lossad(port){
+  let bil=portar[port];
+  if(!bil) return;
+
+  bil.port=port;
+  ankommet.push(bil);
+
+  pallStat[port]=(parseInt(pallStat[port],10)||0)+(parseInt(bil.antal,10)||0);
+
+  const now=new Date();
+  const hour=now.getHours();
+  if(hour>=7 && hour<=23){
+    const k=String(hour).padStart(2,"0");
+    pallTimeline[k]=(parseInt(pallTimeline[k],10)||0)+(parseInt(bil.antal,10)||0);
+  }
+
+  portar[port]=null;
+  spara(); render();
+}
+
+function raderaInleveransById(id){
+  ankommet=ankommet.filter(b=>b.id!==id);
+  spara(); render();
+}
+
+function rensaPort(port){
+  ankommet=ankommet.filter(b=>String(b.port)!==String(port));
+  spara(); render();
+}
+
+function beraknaAktuellaPallarPerPort(portNr){
+  let total=0;
+  ankommet.forEach(b=>{
+    if(String(b.port)===String(portNr)) total += parseInt(b.antal,10) || 0;
+  });
+  return total;
+}
+
+const PROFESSIONAL_LINE = "#00D1FF";
+
+function drawPallChart(){
+  const canvas=document.getElementById("pallChart");
+  const ctx=canvas.getContext("2d");
+
+  const cssWidth = canvas.clientWidth || 640;
+  const cssHeight = 120;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(cssWidth * dpr);
+  canvas.height = Math.floor(cssHeight * dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const labels=[];
+  const values=[];
+  for(let h=7; h<=23; h++){
+    const k=String(h).padStart(2,"0");
+    labels.push(k);
+    values.push(parseInt(pallTimeline[k],10) || 0);
+  }
+
+  const W=cssWidth, H=cssHeight;
+  const padL=30, padR=10, padT=10, padB=22;
+  const chartW=W-padL-padR;
+  const chartH=H-padT-padB;
+
+  ctx.clearRect(0,0,W,H);
+
+  const maxVal = Math.max(1, ...values);
+
+  ctx.strokeStyle="rgba(48,54,61,0.85)";
+  ctx.lineWidth=1;
+
+  ctx.beginPath();
+  ctx.moveTo(padL, padT+chartH);
+  ctx.lineTo(padL+chartW, padT+chartH);
+  ctx.stroke();
+
+  for(let i=1;i<=3;i++){
+    const y = padT + chartH - (chartH*(i/3));
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL+chartW, y);
+    ctx.stroke();
+  }
+
+  const stepX = chartW / (values.length-1);
+
+  const pts = values.map((v,i)=>{
+    const x = padL + i*stepX;
+    const y = padT + (chartH - (v/maxVal)*chartH);
+    return {x,y,i};
+  });
+
+  ctx.strokeStyle = PROFESSIONAL_LINE;
+  ctx.lineWidth = 2.4;
+  ctx.beginPath();
+  pts.forEach((p,i)=>{
+    if(i===0) ctx.moveTo(p.x,p.y);
+    else ctx.lineTo(p.x,p.y);
+  });
+  ctx.stroke();
+
+  ctx.fillStyle = PROFESSIONAL_LINE;
+  pts.forEach(p=>{
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,2.6,0,Math.PI*2);
+    ctx.fill();
+  });
+
+  ctx.fillStyle="#9ca3af";
+  ctx.font="10px Montserrat";
+  ctx.textAlign="center";
+  ctx.textBaseline="top";
+  pts.forEach((p,i)=>{
+    if(i%2===0){
+      ctx.fillText(labels[i], p.x, padT+chartH+4);
+    }
+  });
+
+  ctx.textAlign="left";
+  ctx.textBaseline="top";
+  ctx.fillText(String(maxVal), 2, padT);
+}
+
+function render(){
+  document.getElementById("kpiReceivedPallets").textContent = beraknaTotalPallIdag();
+  document.getElementById("kpiWaitingCars").textContent = beraknaVantandeBilar();
+  document.getElementById("kpiWaitingPallets").textContent = beraknaVantandePall();
+
+  drawPallChart();
+
+  const v=document.getElementById("vantande");
+  v.innerHTML="";
+  vantande.forEach((b,i)=>{
+    let diff=(b.portTid-Date.now())/60000;
+    let card=document.createElement("div");
+    card.className="card";
+    if(diff>60) card.classList.add("green");
+    else if(diff>30) card.classList.add("orange");
+    else card.classList.add("red");
+
+    card.innerHTML=`
+      <div class="leverantor"><i class="fa-solid fa-truck"></i> ${b.leverantor}</div>
+      <div class="lossningstid"><i class="fa-solid fa-clock"></i> ${new Date(b.portTid).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+      <div><i class="fa-solid fa-file-invoice"></i> ${b.ordernr || ""}</div>
+      <div><i class="fa-solid fa-box"></i> ${b.antal} pallar</div>
+      <div>${b.anteckningar || ""}</div>
+    `;
+    card.onclick=()=>bokaIndex(i);
+    v.appendChild(card);
+  });
+
+  const pc=document.getElementById("portContainer");
+  pc.innerHTML="";
+
+  for(let nr=35; nr>=24; nr--){
+    let col=document.createElement("div");
+    col.className="port-column";
+
+    let totalPallDag = parseInt(pallStat[nr],10) || 0;
+    let totalPallNu = beraknaAktuellaPallarPerPort(nr);
+
+    let procent=Math.min((totalPallDag/200)*100,100);
+    let farg="#27ae60"; if(procent>60) farg="#FFA500"; if(procent>85) farg="#f44336";
+
+    let gaugeDiv=document.createElement("div");
+    gaugeDiv.className="gauge-container";
+    gaugeDiv.innerHTML=`<div class="gauge"><div class="gauge-fill" style="width:${procent}%;background:${farg};"></div></div><div class="gauge-value">${totalPallDag} pall</div>`;
+    col.appendChild(gaugeDiv);
+
+    let port=document.createElement("div");
+    port.className="port";
+    port.style.background=portar[nr]?"#7f1d1d":"#1f6f43";
+
+    let bil=portar[nr];
+    let html=`<div class="port-header"><i class="fa-solid fa-warehouse"></i> Port ${nr}</div>`;
+    if(bil){
+      html+=`
+        <div><strong>${bil.leverantor}</strong></div>
+        <div><i class="fa-solid fa-clock"></i> ${new Date(bil.portTid).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+        <div><i class="fa-solid fa-file-invoice"></i> ${bil.ordernr || ""}</div>
+        <div><i class="fa-solid fa-box"></i> ${bil.antal}</div>
+        <div>${bil.anteckningar || ""}</div>
+        <button class="small" onclick="lossad(${nr})"><i class="fa-solid fa-check"></i> Lossad</button>
+      `;
+    }else{
+      html+="Ledig";
+    }
+    port.innerHTML=html;
+    col.appendChild(port);
+
+    let arrivedTitle=document.createElement("div");
+    arrivedTitle.className="arrived-title";
+    arrivedTitle.innerHTML=`<i class="fa-solid fa-box"></i> ${totalPallNu} pall`;
+    col.appendChild(arrivedTitle);
+
+    let arr=document.createElement("div");
+    arr.className="arrived";
+    ankommet.forEach((b)=>{
+      if(String(b.port)===String(nr)){
+        let item=document.createElement("div");
+        item.className="arrived-item";
+        item.innerHTML=`
+          <i class="fa-solid fa-truck"></i> ${b.leverantor}<br>
+          <i class="fa-solid fa-box"></i> ${b.antal} pallar<br>
+          <button class="small" onclick="raderaInleveransById('${b.id}')"><i class="fa-solid fa-trash"></i> Radera</button>
+        `;
+        arr.appendChild(item);
+      }
+    });
+
+    let btn=document.createElement("button");
+    btn.className="small";
+    btn.innerHTML=`<i class="fa-solid fa-broom"></i> Rensa port`;
+    btn.onclick=()=>rensaPort(nr);
+
+    arr.appendChild(btn);
+    col.appendChild(arr);
+    pc.appendChild(col);
+  }
+
+  document.getElementById("clock").textContent=new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+}
+
+/* Clock tick */
+setInterval(()=>{ 
+  const el = document.getElementById("clock");
+  if(el) el.textContent=new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+},1000);
+
+window.addEventListener("resize", () => {
+  const c = document.getElementById("pallChart");
+  if(c) drawPallChart();
+});
+
+/* init (visas först efter login, men vi preppar data) */
+uppdateraDropdown();
+spara();
+render();
+</script>
+
+<!-- =========================
+     ✅ Firebase Auth + Firestore (module)
+     ========================= -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+/* =========================
+   ✅ FYLL I DIN FIREBASE CONFIG
+   Firebase Console -> Project settings -> General -> Your apps -> Web app
+   ========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyAl2MnGXJpGzToGlne511-CivtLIhPqTfk",
+  authDomain: "terminal-dashboard-34e6a.firebaseapp.com",
+  projectId: "terminal-dashboard-34e6a",
+  storageBucket: "terminal-dashboard-34e6a.firebasestorage.app",
+  messagingSenderId: "678938885034",
+  appId: "1:678938885034:web:ce283f0446234c2ac089d3",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* UI helpers */
+function setAuthError(msg){
+  alert(msg);
+}
+
+window.fbRegister = async () => {
+  try{
+    const email = document.getElementById("authEmail").value.trim();
+    const pass  = document.getElementById("authPass").value;
+    if(!email || !pass) return setAuthError("Fyll i e-post och lösenord.");
+    await createUserWithEmailAndPassword(auth, email, pass);
+  }catch(e){
+    setAuthError(e?.message || "Kunde inte skapa konto.");
+  }
+};
+
+window.fbLogin = async () => {
+  try{
+    const email = document.getElementById("authEmail").value.trim();
+    const pass  = document.getElementById("authPass").value;
+    if(!email || !pass) return setAuthError("Fyll i e-post och lösenord.");
+    await signInWithEmailAndPassword(auth, email, pass);
+  }catch(e){
+    setAuthError(e?.message || "Inloggning misslyckades.");
+  }
+};
+
+window.fbLogout = async () => {
+  try{
+    await signOut(auth);
+  }catch(e){
+    alert(e?.message || "Utloggning misslyckades.");
+  }
+};
+
+/* Cloud state helpers */
+function getStateObject(){
+  return {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    leverantorer: window.leverantorer,
+    vantande: window.vantande,
+    ankommet: window.ankommet,
+    portar: window.portar,
+    pallStat: window.pallStat,
+    pallTimeline: window.pallTimeline,
+  };
+}
+
+function applyStateObject(s){
+  if(!s || typeof s !== "object") return;
+
+  window.leverantorer = Array.isArray(s.leverantorer) ? s.leverantorer : ["DHL","PostNord","Bring"];
+  window.vantande     = Array.isArray(s.vantande) ? s.vantande : [];
+  window.ankommet     = Array.isArray(s.ankommet) ? s.ankommet : [];
+  window.portar       = (s.portar && typeof s.portar === "object") ? s.portar : {};
+  window.pallStat     = (s.pallStat && typeof s.pallStat === "object") ? s.pallStat : {};
+  window.pallTimeline = (s.pallTimeline && typeof s.pallTimeline === "object") ? s.pallTimeline : {};
+
+  for(let i=24;i<=35;i++){
+    if(!(i in window.portar)) window.portar[i] = null;
+    if(!(i in window.pallStat)) window.pallStat[i] = 0;
+  }
+  for(let h=7; h<=23; h++){
+    const k = String(h).padStart(2,"0");
+    if(!(k in window.pallTimeline)) window.pallTimeline[k] = 0;
+  }
+
+  // ensure ids
+  window.vantande = window.vantande.map(window.ensureId);
+  window.ankommet = window.ankommet.map(window.ensureId);
+  for(const p of Object.keys(window.portar)){
+    if(window.portar[p]) window.ensureId(window.portar[p]);
+  }
+
+  // sync local cache + UI
+  window.uppdateraDropdown();
+  window.spara();
+  window.render();
+}
+
+async function loadUserState(uid){
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if(snap.exists()){
+    const data = snap.data();
+    if(data && data.state) applyStateObject(data.state);
+  } else {
+    // first time: create doc with current state
+    await setDoc(ref, { state: getStateObject(), updatedAt: serverTimestamp() }, { merge: true });
+  }
+}
+
+async function saveUserState(uid){
+  const ref = doc(db, "users", uid);
+  await setDoc(ref, { state: getStateObject(), updatedAt: serverTimestamp() }, { merge: true });
+}
+
+/* Manual buttons */
+window.cloudLoad = async () => {
+  try{
+    if(!window.__UID__) return;
+    window.setCloudStatus?.("Laddar från molnet...");
+    await loadUserState(window.__UID__);
+    window.setCloudStatus?.("Laddat från molnet.");
+  }catch(e){
+    alert(e?.message || "Kunde inte ladda från molnet.");
+  }
+};
+
+window.cloudSave = async () => {
+  try{
+    if(!window.__UID__) return;
+    window.setCloudStatus?.("Sparar till molnet...");
+    await saveUserState(window.__UID__);
+    window.setCloudStatus?.("Sparat till molnet.");
+  }catch(e){
+    alert(e?.message || "Kunde inte spara till molnet.");
+  }
+};
+
+/* Autosave debounce called from classic script */
+let saveTimer = null;
+window.scheduleFirebaseSave = (uid) => {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveUserState(uid).catch(()=>{});
+  }, 800);
+};
+
+/* Auth state -> show/hide */
+onAuthStateChanged(auth, async (user) => {
+  const authBox = document.getElementById("authBox");
+  const appBox  = document.getElementById("appBox");
+
+  if(user){
+    window.__UID__ = user.uid;
+    if(authBox) authBox.style.display = "none";
+    if(appBox)  appBox.style.display  = "block";
+
+    // load cloud state
+    try{
+      window.setCloudStatus?.("Laddar din data...");
+      await loadUserState(user.uid);
+      window.setCloudStatus?.("Klar.");
+    }catch(e){
+      // fallback: still allow local cache
+      window.setCloudStatus?.("Kunde inte ladda från molnet (kör lokal cache).");
+    }
+  } else {
+    window.__UID__ = null;
+    if(appBox)  appBox.style.display  = "none";
+    if(authBox) authBox.style.display = "block";
+  }
+});
+</script>
+
+</body>
+</html>
