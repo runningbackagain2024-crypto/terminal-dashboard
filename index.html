@@ -147,7 +147,7 @@ body{
 }
 
 .kpi-label.received .kpi-icon{ color:#22c55e; }
-.kpi-label.waitCars .kpi-icon{ color:#f59e0b; }
+.kpi-label.waitCars .kpi-icon{ color:#e91e63; }
 .kpi-label.waitPall .kpi-icon{ color:#38bdf8; }
 
 .kpi-number{
@@ -163,8 +163,8 @@ body{
   text-shadow: 0 0 26px rgba(34,197,94,0.18), 0 0 10px rgba(34,197,94,0.10);
 }
 .kpi-number.waitCars{
-  color:#f59e0b;
-  text-shadow: 0 0 26px rgba(245,158,11,0.18), 0 0 10px rgba(245,158,11,0.10);
+  color:#ff1493;
+  text-shadow: 0 0 26px rgba(255,20,147,0.4), 0 0 10px rgba(255,20,147,0.25);
 }
 .kpi-number.waitPall{
   color:#38bdf8;
@@ -729,7 +729,7 @@ function beraknaAktuellaPallarPerPort(portNr){
   return total;
 }
 
-const PROFESSIONAL_LINE = "#00D1FF";
+const PROFESSIONAL_LINE = "#22c55e";
 
 function drawPallChart(){
   const canvas=document.getElementById("pallChart");
@@ -1173,6 +1173,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
