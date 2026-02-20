@@ -435,6 +435,9 @@ button.small{
 
       <!-- ✅ Knappar rakt under rubriken -->
       <div id="shareControls" class="form-row">
+        <button onclick="resetStatistik()" style="background:#7f1d1d;color:#fff;">
+  <i class="fa-solid fa-rotate-left"></i> Nollställ statistik
+</button>
         <button onclick="cloudLoad()">
           <i class="fa-solid fa-cloud-arrow-down"></i> Ladda från molnet
         </button>
@@ -512,7 +515,33 @@ button.small{
      ✅ Dashboard-script (classic)
      ========================= -->
 <script>
-/* =========================
+function resetStatistik(){
+
+  if(!confirm("Är du säker på att du vill nollställa dagens statistik?")){
+    return;
+  }
+
+  // Nollställ pall per port
+  for(let i=24;i<=35;i++){
+    window.pallStat[i] = 0;
+  }
+
+  // Nollställ timdiagram
+  for(let h=7; h<=23; h++){
+    const k = String(h).padStart(2,"0");
+    window.pallTimeline[k] = 0;
+  }
+
+  // Töm ankommet (valfritt – ta bort denna rad om du vill behålla historik)
+  window.ankommet = [];
+
+  // Spara & uppdatera
+  spara();
+  render();
+
+  alert("Statistiken är nollställd.");
+}
+  /* =========================
    ✅ Lokal data (cache)
    - ÖVER DAGAR: ingen daily reset
    ========================= */
@@ -1180,6 +1209,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
