@@ -753,8 +753,17 @@ function raderaInleveransById(id){
 window.raderaInleveransById = raderaInleveransById;
 
 function rensaPort(port){
-  window.ankommet=window.ankommet.filter(b=>String(b.port)!==String(port));
-  spara(); render();
+  // Ta bort ankommet kopplat till porten
+  window.ankommet = window.ankommet.filter(b => String(b.port) !== String(port));
+
+  // ✅ Nolla även dagstotalen för porten (så KPI och gauge blir rätt)
+  window.pallStat[port] = 0;
+
+  // (valfritt) nolla även aktiv bokning om du vill:
+  // window.portar[port] = null;
+
+  spara();
+  render();
 }
 
 function beraknaAktuellaPallarPerPort(portNr){
@@ -1209,6 +1218,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
