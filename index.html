@@ -389,27 +389,16 @@ button.small{
   margin:22px 0 12px 0;
 }
 
-  /* Klickbar port-ikon */
-.port-column{
+/* Ikonrad ovanför portkortet */
+.port-icon-row{
+  width:170px;            /* samma som portkortet */
   display:flex;
-  flex-direction:column;
+  justify-content:flex-start; /* vänster */
   align-items:center;
-  position:relative; /* viktigt */
+  margin-bottom:6px;
 }
 
-/* Röd grön knapp Rad som håller (ikon + portkort) */
-.port-row{
-  display:flex;
-  align-items:flex-start;
-  gap:8px;
-}
-
-/* Klickbar portikon till vänster om kortet */
 .port-toggle{
-  width:24px;
-  display:flex;
-  justify-content:center;
-  margin-top:10px;
   font-size:22px;
   cursor:pointer;
   transition:0.2s ease;
@@ -1040,6 +1029,18 @@ function render(){
 for(let nr=35; nr>=24; nr--){
   let col=document.createElement("div");
   col.className="port-column";
+  
+  // --- ikonrad ovanför portkortet (vänster) ---
+let iconRow = document.createElement("div");
+iconRow.className = "port-icon-row";
+
+let icon = document.createElement("div");
+icon.className = "port-toggle open";
+icon.innerHTML = `<i class="fa-solid fa-door-open"></i>`;
+icon.onclick = function(){ togglePortIcon(this); };
+
+iconRow.appendChild(icon);
+col.appendChild(iconRow);
 
   // --- Gauge (dagstotal) ---
   let totalPallDag = parseInt(window.pallStat[nr],10) || 0;
@@ -1386,6 +1387,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
