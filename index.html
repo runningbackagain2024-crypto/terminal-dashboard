@@ -715,14 +715,112 @@ function registrera(){
 window.registrera = registrera;
 
 function bokaIndex(index){
-  let lediga=Object.keys(window.portar).filter(p=>!window.portar[p]);
-  if(lediga.length===0){ alert("Inga lediga portar"); return; }
-  let val=prompt("Välj port: "+lediga.join(","));
-  if(!lediga.includes(val)) return;
+ const lediga = Object.keys(window.portar).filter(p => !window.portar[p]);
+  if(lediga.length === 0){ alert("Inga lediga portar"); return; }
 
-  window.portar[val]=window.vantande[index];
+  const bil = window.vantande[index];
+  if(!bil) return;
+
+  // 1) välj 1 eller 2 portar
+  const val = prompt(
+    "Välj port (en port) eller två portar (bil+släp).\n" +
+    "Exempel: 24  eller  24,25\n\nLediga portar: " + lediga.join(",")
+  );
+  if(!val) return;
+
+  // plocka ut portnummer (tillåt kommatecken, mellanslag)
+  const ports = val
+    .split(/[,\s]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  // validera
+  if(ports.length < 1 || ports.length > 2){
+    alert("Skriv 1 port (t.ex. 24) eller 2 portar (t.ex. 24,25).");
+    return;
+  }
+  if(ports.some(p => !lediga.includes(p))){
+    alert("En eller flera valda portar är inte lediga eller ogiltiga.");
+    return;
+  }
+  if(new Set(ports).size !== ports.length){
+    alert("Du har valt samma port två gånger.");
+    return;
+  }
+
+  const totalPall = parseInt(bil.antal, 10) || 0;
+  if(totalPall <= 0){
+    alert("Antal pall på bilen är ogiltigt.");
+    return;
+  }
+
+  // helper: skapa en kopia för porten med eget id + split-antal
+  function makePortBooking(base, portNr, pallAntal){
+    const copy = { ...base };
+    copy.id = (crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : (Date.now()+"_"+Math.random().toString(16).slice(2));
+
+    // koppla ihop dem (valfritt men bra)
+    copy.parentId = base.id || base.parentId || null;
+    copy.splitGroupId = base.id || copy.id;
+
+    copy.antal = String(pallAntal);
+    copy.port = String(portNr); // sätts även vid lossad, men bra att ha
+    copy.isSplit = true;
+    return copy;
+  }
+
+  if(ports.length === 1){
+    // Som tidigare: boka en port
+    window.portar[ports[0]] = bil;
+    window.vantande.splice(index,1);
+    window.spara();
+    window.render();
+    return;
+  }
+
+  // 2 portar: fråga om fördelning
+  const p1 = ports[0];
+  const p2 = ports[1];
+
+  let a1 = prompt(`Hur många pall till Port ${p1}? (Totalt ${totalPall})`);
+  if(a1 === null) return;
+  a1 = parseInt(String(a1).trim(), 10);
+
+  if(!Number.isFinite(a1) || a1 < 0 || a1 > totalPall){
+    alert("Ogiltigt antal pall för första porten.");
+    return;
+  }
+
+  const a2 = totalPall - a1;
+
+  // Om användaren vill skriva båda, kan vi fråga även port 2 (valfritt).
+  // Här håller vi det enkelt: port2 får resten.
+  if(a2 < 0){
+    alert("Fördelningen blev negativ. Försök igen.");
+    return;
+  }
+
+  // extra kontroll: tillåt inte 0/0
+  if(a1 === 0 && a2 === 0){
+    alert("Minst en port måste få pall.");
+    return;
+  }
+
+  // skapa två bokningar
+  const b1 = makePortBooking(bil, p1, a1);
+  const b2 = makePortBooking(bil, p2, a2);
+
+  // boka båda portar
+  window.portar[p1] = b1;
+  window.portar[p2] = b2;
+
+  // ta bort original från väntande
   window.vantande.splice(index,1);
-  spara(); render();
+
+  window.spara();
+  window.render();
 }
 
 function lossad(port){
@@ -916,7 +1014,7 @@ function render(){
         <div><strong>${bil.leverantor}</strong></div>
         <div><i class="fa-solid fa-clock"></i> ${new Date(bil.portTid).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
         <div><i class="fa-solid fa-file-invoice"></i> ${bil.ordernr || ""}</div>
-        <div><i class="fa-solid fa-box"></i> ${bil.antal}</div>
+        <div><i class="fa-solid fa-box"></i> ${bil.antal} pall ${bil.isSplit ? '<span style="opacity:0.75;">(delad)</span>' : ''}</div>
         <div>${bil.anteckningar || ""}</div>
         <button class="small" onclick="lossad(${nr})"><i class="fa-solid fa-check"></i> Lossad</button>
       `;
@@ -1218,6 +1316,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
