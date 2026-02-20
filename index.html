@@ -397,15 +397,22 @@ button.small{
   position:relative; /* viktigt */
 }
 
-/* Ikonen till vänster */
+/* Röd grön knapp Rad som håller (ikon + portkort) */
+.port-row{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+}
+
+/* Klickbar portikon till vänster om kortet */
 .port-toggle{
-  position:absolute;
-  left:-28px;      /* justera om du vill närmare/längre ut */
-  top:42px;        /* höjd i förhållande till portkortet */
+  width:24px;              /* håller plats */
+  display:flex;
+  justify-content:center;
+  margin-top:10px;         /* justerar höjd mot portkortet */
   font-size:22px;
   cursor:pointer;
   transition:0.2s ease;
-  z-index:5;
 }
 
 .port-toggle.open{
@@ -416,7 +423,7 @@ button.small{
 .port-toggle.closed{
   color:#e91e63;
   text-shadow: 0 0 6px rgba(233,30,99,0.35);
-}
+  }
   
 /* Responsive */
 @media (max-width: 1100px){
@@ -1050,26 +1057,43 @@ col.appendChild(icon);
     gaugeDiv.innerHTML=`<div class="gauge"><div class="gauge-fill" style="width:${procent}%;background:${farg};"></div></div><div class="gauge-value">${totalPallDag} pall</div>`;
     col.appendChild(gaugeDiv);
 
-    let port=document.createElement("div");
-    port.className="port";
-    port.style.background=window.portar[nr]?"#7f1d1d":"#1f6f43";
+// --- skapa raden (ikon + portkort) ---
+let portRow = document.createElement("div");
+portRow.className = "port-row";
 
-    let bil=window.portar[nr];
-    let html=`<div class="port-header"><i class="fa-solid fa-warehouse"></i> Port ${nr}</div>`;
-    if(bil){
-      html+=`
-        <div><strong>${bil.leverantor}</strong></div>
-        <div><i class="fa-solid fa-clock"></i> ${new Date(bil.portTid).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
-        <div><i class="fa-solid fa-file-invoice"></i> ${bil.ordernr || ""}</div>
-        <div><i class="fa-solid fa-box"></i> ${bil.antal} pall ${bil.isSplit ? '<span style="opacity:0.75;">(delad)</span>' : ''}</div>
-        <div>${bil.anteckningar || ""}</div>
-        <button class="small" onclick="lossad(${nr})"><i class="fa-solid fa-check"></i> Lossad</button>
-      `;
-    }else{
-      html+="Ledig";
-    }
-    port.innerHTML=html;
-    col.appendChild(port);
+// ikonen (start grön)
+let icon = document.createElement("div");
+icon.className = "port-toggle open";
+icon.innerHTML = `<i class="fa-solid fa-door-open"></i>`;
+icon.onclick = function(){ togglePortIcon(this); };
+portRow.appendChild(icon);
+
+// portkortet (som du redan bygger)
+let port=document.createElement("div");
+port.className="port";
+port.style.background=window.portar[nr]?"#7f1d1d":"#1f6f43";
+
+// ... din befintliga html-byggnad ...
+let bil=window.portar[nr];
+let html=`<div class="port-header"><i class="fa-solid fa-warehouse"></i> Port ${nr}</div>`;
+if(bil){
+  html+=`
+    <div><strong>${bil.leverantor}</strong></div>
+    <div><i class="fa-solid fa-clock"></i> ${new Date(bil.portTid).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+    <div><i class="fa-solid fa-file-invoice"></i> ${bil.ordernr || ""}</div>
+    <div><i class="fa-solid fa-box"></i> ${bil.antal} pall</div>
+    <div>${bil.anteckningar || ""}</div>
+    <button class="small" onclick="lossad(${nr})"><i class="fa-solid fa-check"></i> Lossad</button>
+  `;
+}else{
+  html+="Ledig";
+}
+port.innerHTML = html;
+
+portRow.appendChild(port);
+
+// Lägg in raden i kolumnen (istället för bara port)
+col.appendChild(portRow);
 
     let arrivedTitle=document.createElement("div");
     arrivedTitle.className="arrived-title";
@@ -1363,6 +1387,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
