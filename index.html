@@ -574,6 +574,13 @@ var leverantorer = JSON.parse(localStorage.getItem("leverantorer")) || ["DHL","P
 var vantande     = JSON.parse(localStorage.getItem("vantande"))     || [];
 var ankommet     = JSON.parse(localStorage.getItem("ankommet"))     || [];
 
+  /* Port-ikonstatus (open/closed) per port */
+var portDoorState = JSON.parse(localStorage.getItem("portDoorState")) || {};
+for(let i=24;i<=35;i++){
+  portDoorState[i] = portDoorState[i] || "open"; // default
+}
+window.portDoorState = portDoorState;
+  
 /* Dagstotal per port */
 var pallStat = JSON.parse(localStorage.getItem("pallStat")) || {};
 for(let i=24;i<=35;i++){ pallStat[i] = pallStat[i] || 0; }
@@ -651,6 +658,7 @@ function spara(){
   localStorage.setItem("portar", JSON.stringify(window.portar));
   localStorage.setItem("pallStat", JSON.stringify(window.pallStat));
   localStorage.setItem("pallTimeline", JSON.stringify(window.pallTimeline));
+  localStorage.setItem("portDoorState", JSON.stringify(window.portDoorState));
 
   if(AUTOSAVE_ENABLED && window.__UID__ && window.scheduleFirebaseSave){
     window.scheduleFirebaseSave(window.__UID__);
@@ -659,15 +667,22 @@ function spara(){
 window.spara = spara;
 
 function togglePortIcon(el){
-  if(el.classList.contains("open")){
-    el.classList.remove("open");
-    el.classList.add("closed");
-    el.innerHTML = `<i class="fa-solid fa-door-closed"></i>`;
-  }else{
-    el.classList.remove("closed");
-    el.classList.add("open");
-    el.innerHTML = `<i class="fa-solid fa-door-open"></i>`;
-  }
+  const portNr = el?.dataset?.port;
+  if(!portNr) return;
+
+  const isOpen = el.classList.contains("open");
+  const next = isOpen ? "closed" : "open";
+
+  // uppdatera UI
+  el.classList.toggle("open", next === "open");
+  el.classList.toggle("closed", next === "closed");
+  el.innerHTML = next === "open"
+    ? `<i class="fa-solid fa-door-open"></i>`
+    : `<i class="fa-solid fa-door-closed"></i>`;
+
+  // ✅ spara state
+  window.portDoorState[portNr] = next;
+  window.spara();
 }
 window.togglePortIcon = togglePortIcon;
   
@@ -1054,9 +1069,20 @@ function render(){
     iconRow.className = "port-icon-row";
 
     const icon = document.createElement("div");
-    icon.className = "port-toggle open";
-    icon.innerHTML = `<i class="fa-solid fa-door-open"></i>`;
-    icon.onclick = function(){ togglePortIcon(this); };
+
+const state = (window.portDoorState && window.portDoorState[nr])
+  ? window.portDoorState[nr]
+  : "open";
+
+icon.className = `port-toggle ${state}`;
+icon.innerHTML = state === "open"
+  ? `<i class="fa-solid fa-door-open"></i>`
+  : `<i class="fa-solid fa-door-closed"></i>`;
+
+icon.dataset.port = String(nr);     // 🔥 Viktigt
+icon.onclick = function(){ togglePortIcon(this); };
+
+iconRow.appendChild(icon);
 
     iconRow.appendChild(icon);
     col.appendChild(iconRow);
@@ -1381,6 +1407,7 @@ service cloud.firestore {
 
 </body>
 </html>
+
 
 
 
