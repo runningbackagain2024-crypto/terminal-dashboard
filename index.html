@@ -44,7 +44,7 @@ body{
 /* Top area: Title row + (KPI left, Clock right) row */
 #topBar{
   display:grid;
-  grid-template-columns: 1fr 260px; /* vänster tar resten, höger är smal */
+  grid-template-columns: 1fr 260px;
   grid-template-areas:
     "title title"
     "kpi   clock";
@@ -106,11 +106,10 @@ body{
 
 /* Clock (right) */
 #clock{
-  justify-self: end;
-  transform: translateX(-350px); /* mer åt vänster */
   grid-area:clock;
   justify-self:end;
-  margin-right:200px; /* öka värdet = mer åt vänster */
+  transform: translateX(-350px);
+  margin-right:200px;
   align-self:start;
   width:260px;
   text-align:right;
@@ -163,7 +162,7 @@ body{
 
 .kpi-number.received{
   color:#22c55e;
-  text-shadow:    
+  text-shadow:
     0 0 6px rgba(34,197,94,0.35),
     0 0 14px rgba(34,197,94,0.25);
 }
@@ -173,7 +172,7 @@ body{
 }
 .kpi-number.waitPall{
   color:#38bdf8;
-  text-shadow:    
+  text-shadow:
     0 0 6px rgba(56,189,248,0.35),
     0 0 14px rgba(56,189,248,0.25);
 }
@@ -391,9 +390,9 @@ button.small{
 
 /* Ikonrad ovanför portkortet */
 .port-icon-row{
-  width:170px;                 /* samma som portkortet */
+  width:170px;
   display:flex;
-  justify-content:flex-start;  /* vänster */
+  justify-content:flex-start;
   align-items:center;
   margin-bottom:6px;
 }
@@ -413,7 +412,7 @@ button.small{
   color:#e91e63;
   text-shadow: 0 0 6px rgba(233,30,99,0.35);
 }
-  
+
 /* Responsive */
 @media (max-width: 1100px){
   #topBar{
@@ -429,6 +428,8 @@ button.small{
     text-align:left;
     width:auto;
     font-size:72px;
+    transform:none;
+    margin-right:0;
   }
   #pageTitle h1{ font-size:36px; }
 }
@@ -461,8 +462,8 @@ button.small{
       <!-- ✅ Knappar rakt under rubriken -->
       <div id="shareControls" class="form-row">
         <button onclick="resetStatistik()" style="background:#7f1d1d;color:#fff;">
-  <i class="fa-solid fa-rotate-left"></i> Nollställ statistik
-</button>
+          <i class="fa-solid fa-rotate-left"></i> Nollställ statistik
+        </button>
         <button onclick="cloudLoad()">
           <i class="fa-solid fa-cloud-arrow-down"></i> Ladda från molnet
         </button>
@@ -541,7 +542,6 @@ button.small{
      ========================= -->
 <script>
 function resetStatistik(){
-
   if(!confirm("Är du säker på att du vill nollställa dagens statistik?")){
     return;
   }
@@ -557,7 +557,7 @@ function resetStatistik(){
     window.pallTimeline[k] = 0;
   }
 
-  // Töm ankommet (valfritt – ta bort denna rad om du vill behålla historik)
+  // Töm ankommet (valfritt)
   window.ankommet = [];
 
   // Spara & uppdatera
@@ -566,21 +566,24 @@ function resetStatistik(){
 
   alert("Statistiken är nollställd.");
 }
-  /* =========================
+
+/* =========================
    ✅ Lokal data (cache)
-   - ÖVER DAGAR: ingen daily reset
    ========================= */
 var leverantorer = JSON.parse(localStorage.getItem("leverantorer")) || ["DHL","PostNord","Bring"];
 var vantande     = JSON.parse(localStorage.getItem("vantande"))     || [];
 var ankommet     = JSON.parse(localStorage.getItem("ankommet"))     || [];
 
-  /* Port-ikonstatus (open/closed) per port */
+/* ✅ Port-ikonstatus (open/closed) per port
+   - Default: closed (röd) för alla portar
+   - Auto: blir closed när något bokas på porten
+*/
 var portDoorState = JSON.parse(localStorage.getItem("portDoorState")) || {};
 for(let i=24;i<=35;i++){
-  portDoorState[i] = portDoorState[i] || "open"; // default
+  portDoorState[i] = portDoorState[i] || "closed";
 }
 window.portDoorState = portDoorState;
-  
+
 /* Dagstotal per port */
 var pallStat = JSON.parse(localStorage.getItem("pallStat")) || {};
 for(let i=24;i<=35;i++){ pallStat[i] = pallStat[i] || 0; }
@@ -611,7 +614,7 @@ for(const p of Object.keys(portar)){
   if(portar[p]) ensureId(portar[p]);
 }
 
-/* expose helpers to module script */
+/* expose */
 window.leverantorer = leverantorer;
 window.vantande = vantande;
 window.ankommet = ankommet;
@@ -658,7 +661,7 @@ function spara(){
   localStorage.setItem("portar", JSON.stringify(window.portar));
   localStorage.setItem("pallStat", JSON.stringify(window.pallStat));
   localStorage.setItem("pallTimeline", JSON.stringify(window.pallTimeline));
-  localStorage.setItem("portDoorState", JSON.stringify(window.portDoorState));
+  localStorage.setItem("portDoorState", JSON.stringify(window.portDoorState)); // ✅
 
   if(AUTOSAVE_ENABLED && window.__UID__ && window.scheduleFirebaseSave){
     window.scheduleFirebaseSave(window.__UID__);
@@ -666,6 +669,7 @@ function spara(){
 }
 window.spara = spara;
 
+/* ✅ Dörrtoggle: sparar per port */
 function togglePortIcon(el){
   const portNr = el?.dataset?.port;
   if(!portNr) return;
@@ -673,19 +677,17 @@ function togglePortIcon(el){
   const isOpen = el.classList.contains("open");
   const next = isOpen ? "closed" : "open";
 
-  // uppdatera UI
   el.classList.toggle("open", next === "open");
   el.classList.toggle("closed", next === "closed");
   el.innerHTML = next === "open"
     ? `<i class="fa-solid fa-door-open"></i>`
     : `<i class="fa-solid fa-door-closed"></i>`;
 
-  // ✅ spara state
   window.portDoorState[portNr] = next;
   window.spara();
 }
 window.togglePortIcon = togglePortIcon;
-  
+
 function beraknaTotalPallIdag(){
   let total = 0;
   for(let i=24;i<=35;i++) total += parseInt(window.pallStat[i],10) || 0;
@@ -767,27 +769,25 @@ function registrera(){
 }
 window.registrera = registrera;
 
+/* ✅ Bokning: auto-sätt port-ikon till CLOSED (röd) när något ställs på port */
 function bokaIndex(index){
- const lediga = Object.keys(window.portar).filter(p => !window.portar[p]);
+  const lediga = Object.keys(window.portar).filter(p => !window.portar[p]);
   if(lediga.length === 0){ alert("Inga lediga portar"); return; }
 
   const bil = window.vantande[index];
   if(!bil) return;
 
-  // 1) välj 1 eller 2 portar
   const val = prompt(
     "Välj port (en port) eller två portar (bil+släp).\n" +
     "Exempel: 24  eller  24,25\n\nLediga portar: " + lediga.join(",")
   );
   if(!val) return;
 
-  // plocka ut portnummer (tillåt kommatecken, mellanslag)
   const ports = val
     .split(/[,\s]+/)
     .map(s => s.trim())
     .filter(Boolean);
 
-  // validera
   if(ports.length < 1 || ports.length > 2){
     alert("Skriv 1 port (t.ex. 24) eller 2 portar (t.ex. 24,25).");
     return;
@@ -807,33 +807,34 @@ function bokaIndex(index){
     return;
   }
 
-  // helper: skapa en kopia för porten med eget id + split-antal
   function makePortBooking(base, portNr, pallAntal){
     const copy = { ...base };
     copy.id = (crypto && crypto.randomUUID)
       ? crypto.randomUUID()
       : (Date.now()+"_"+Math.random().toString(16).slice(2));
 
-    // koppla ihop dem (valfritt men bra)
     copy.parentId = base.id || base.parentId || null;
     copy.splitGroupId = base.id || copy.id;
 
     copy.antal = String(pallAntal);
-    copy.port = String(portNr); // sätts även vid lossad, men bra att ha
+    copy.port = String(portNr);
     copy.isSplit = true;
     return copy;
   }
 
   if(ports.length === 1){
-    // Som tidigare: boka en port
-    window.portar[ports[0]] = bil;
+    const p = ports[0];
+    window.portar[p] = bil;
+
+    // ✅ auto-röd när port blir upptagen
+    window.portDoorState[p] = "closed";
+
     window.vantande.splice(index,1);
     window.spara();
     window.render();
     return;
   }
 
-  // 2 portar: fråga om fördelning
   const p1 = ports[0];
   const p2 = ports[1];
 
@@ -847,34 +848,31 @@ function bokaIndex(index){
   }
 
   const a2 = totalPall - a1;
-
-  // Om användaren vill skriva båda, kan vi fråga även port 2 (valfritt).
-  // Här håller vi det enkelt: port2 får resten.
   if(a2 < 0){
     alert("Fördelningen blev negativ. Försök igen.");
     return;
   }
-
-  // extra kontroll: tillåt inte 0/0
   if(a1 === 0 && a2 === 0){
     alert("Minst en port måste få pall.");
     return;
   }
 
-  // skapa två bokningar
   const b1 = makePortBooking(bil, p1, a1);
   const b2 = makePortBooking(bil, p2, a2);
 
-  // boka båda portar
   window.portar[p1] = b1;
   window.portar[p2] = b2;
 
-  // ta bort original från väntande
+  // ✅ auto-röd när portarna blir upptagna
+  window.portDoorState[p1] = "closed";
+  window.portDoorState[p2] = "closed";
+
   window.vantande.splice(index,1);
 
   window.spara();
   window.render();
 }
+window.bokaIndex = bokaIndex;
 
 function lossad(port){
   let bil=window.portar[port];
@@ -904,18 +902,13 @@ function raderaInleveransById(id){
 window.raderaInleveransById = raderaInleveransById;
 
 function rensaPort(port){
-  // Ta bort ankommet kopplat till porten
   window.ankommet = window.ankommet.filter(b => String(b.port) !== String(port));
-
-  // ✅ Nolla även dagstotalen för porten (så KPI och gauge blir rätt)
   window.pallStat[port] = 0;
-
-  // (valfritt) nolla även aktiv bokning om du vill:
-  // window.portar[port] = null;
 
   spara();
   render();
 }
+window.rensaPort = rensaPort;
 
 function beraknaAktuellaPallarPerPort(portNr){
   let total=0;
@@ -1017,7 +1010,6 @@ function render(){
 
   drawPallChart();
 
-  // Väntande
   const v=document.getElementById("vantande");
   v.innerHTML="";
   window.vantande.forEach((b,i)=>{
@@ -1039,24 +1031,21 @@ function render(){
     v.appendChild(card);
   });
 
-  // Portar
   const pc=document.getElementById("portContainer");
   pc.innerHTML="";
 
   for(let nr=35; nr>=24; nr--){
-    const col=document.createElement("div");
+    let col=document.createElement("div");
     col.className="port-column";
 
     // Gauge (dagstotal)
-    const totalPallDag = parseInt(window.pallStat[nr],10) || 0;
-    const totalPallNu  = beraknaAktuellaPallarPerPort(nr);
+    let totalPallDag = parseInt(window.pallStat[nr],10) || 0;
+    let totalPallNu  = beraknaAktuellaPallarPerPort(nr);
 
     let procent = Math.min((totalPallDag/200)*100,100);
-    let farg="#27ae60"; 
-    if(procent>60) farg="#FFA500"; 
-    if(procent>85) farg="#f44336";
+    let farg="#27ae60"; if(procent>60) farg="#FFA500"; if(procent>85) farg="#f44336";
 
-    const gaugeDiv=document.createElement("div");
+    let gaugeDiv=document.createElement("div");
     gaugeDiv.className="gauge-container";
     gaugeDiv.innerHTML = `
       <div class="gauge"><div class="gauge-fill" style="width:${procent}%;background:${farg};"></div></div>
@@ -1064,35 +1053,28 @@ function render(){
     `;
     col.appendChild(gaugeDiv);
 
-    // Ikonrad
-    const iconRow = document.createElement("div");
+    // Ikon ovanför portkortet (sparad status)
+    let iconRow = document.createElement("div");
     iconRow.className = "port-icon-row";
 
     const icon = document.createElement("div");
-
-const state = (window.portDoorState && window.portDoorState[nr])
-  ? window.portDoorState[nr]
-  : "open";
-
-icon.className = `port-toggle ${state}`;
-icon.innerHTML = state === "open"
-  ? `<i class="fa-solid fa-door-open"></i>`
-  : `<i class="fa-solid fa-door-closed"></i>`;
-
-icon.dataset.port = String(nr);     // 🔥 Viktigt
-icon.onclick = function(){ togglePortIcon(this); };
-
-iconRow.appendChild(icon);
+    const state = (window.portDoorState && window.portDoorState[nr]) ? window.portDoorState[nr] : "closed";
+    icon.className = `port-toggle ${state}`;
+    icon.innerHTML = state === "open"
+      ? `<i class="fa-solid fa-door-open"></i>`
+      : `<i class="fa-solid fa-door-closed"></i>`;
+    icon.dataset.port = String(nr);
+    icon.onclick = function(){ togglePortIcon(this); };
 
     iconRow.appendChild(icon);
     col.appendChild(iconRow);
 
     // Portkort
-    const port=document.createElement("div");
+    let port=document.createElement("div");
     port.className="port";
     port.style.background = window.portar[nr] ? "#7f1d1d" : "#1f6f43";
 
-    const bil = window.portar[nr];
+    let bil = window.portar[nr];
     let html = `<div class="port-header"><i class="fa-solid fa-warehouse"></i> Port ${nr}</div>`;
 
     if(bil){
@@ -1111,19 +1093,19 @@ iconRow.appendChild(icon);
     port.innerHTML = html;
     col.appendChild(port);
 
-    // Rubrik ovanför ankommet-lista
-    const arrivedTitle=document.createElement("div");
+    // Rubrik ovanför listan (aktuella pall på port)
+    let arrivedTitle=document.createElement("div");
     arrivedTitle.className="arrived-title";
     arrivedTitle.innerHTML = `<i class="fa-solid fa-box"></i> ${totalPallNu} pall`;
     col.appendChild(arrivedTitle);
 
-    // Ankommet-lista
-    const arr=document.createElement("div");
+    // Ankommet-listan
+    let arr=document.createElement("div");
     arr.className="arrived";
 
     window.ankommet.forEach((b)=>{
       if(String(b.port)===String(nr)){
-        const item=document.createElement("div");
+        let item=document.createElement("div");
         item.className="arrived-item";
         item.innerHTML=`
           <i class="fa-solid fa-truck"></i> ${b.leverantor}<br>
@@ -1134,17 +1116,17 @@ iconRow.appendChild(icon);
       }
     });
 
-    const btn=document.createElement("button");
+    let btn=document.createElement("button");
     btn.className="small";
     btn.innerHTML = `<i class="fa-solid fa-broom"></i> Rensa port`;
     btn.onclick = ()=>rensaPort(nr);
-    arr.appendChild(btn);
 
+    arr.appendChild(btn);
     col.appendChild(arr);
+
     pc.appendChild(col);
   }
 
-  // Klockan
   const clockEl = document.getElementById("clock");
   if(clockEl){
     clockEl.textContent=new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
@@ -1153,7 +1135,7 @@ iconRow.appendChild(icon);
 window.render = render;
 
 /* Clock tick */
-setInterval(()=>{ 
+setInterval(()=>{
   const el = document.getElementById("clock");
   if(el) el.textContent=new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 },1000);
@@ -1170,17 +1152,14 @@ render();
 </script>
 
 <!-- =========================
-     ✅ Firebase Auth + Firestore (module) + Konfliktskydd (A)
+     ✅ Firebase Auth + Firestore (module) + Konfliktskydd
      ========================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-/* =========================
-   ✅ FYLL I DIN FIREBASE CONFIG
-   Firebase Console -> Project settings -> General -> Your apps -> Web app
-   ========================= */
+/* ✅ FYLL I DIN FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyAl2MnGXJpGzToGlne511-CivtLIhPqTfk",
   authDomain: "terminal-dashboard-34e6a.firebaseapp.com",
@@ -1238,6 +1217,7 @@ function getStateObject(){
     portar: window.portar,
     pallStat: window.pallStat,
     pallTimeline: window.pallTimeline,
+    portDoorState: window.portDoorState, // ✅ SPARA IKONLÄGE I MOLNET
   };
 }
 
@@ -1251,9 +1231,13 @@ function applyStateObject(s){
   window.pallStat     = (s.pallStat && typeof s.pallStat === "object") ? s.pallStat : {};
   window.pallTimeline = (s.pallTimeline && typeof s.pallTimeline === "object") ? s.pallTimeline : {};
 
+  // ✅ ikonläge
+  window.portDoorState = (s.portDoorState && typeof s.portDoorState === "object") ? s.portDoorState : {};
+
   for(let i=24;i<=35;i++){
     if(!(i in window.portar)) window.portar[i] = null;
     if(!(i in window.pallStat)) window.pallStat[i] = 0;
+    if(!(i in window.portDoorState)) window.portDoorState[i] = "closed"; // ✅ default röd
   }
   for(let h=7; h<=23; h++){
     const k = String(h).padStart(2,"0");
@@ -1273,10 +1257,7 @@ function applyStateObject(s){
   window.render();
 }
 
-/* =========================
-   ✅ Konfliktskydd (A):
-   - rev på servern måste matcha localRev, annars blockera och tvinga load
-   ========================= */
+/* ✅ Konfliktskydd: rev måste matcha localRev */
 let localRev = null;
 
 async function loadUserState(uid){
@@ -1404,9 +1385,9 @@ service cloud.firestore {
   }
 }
 -->
-
 </body>
 </html>
+
 
 
 
